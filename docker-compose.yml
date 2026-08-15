@@ -1,1 +1,95 @@
+version: '3.8'
 
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: netmatrix_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: netmatrix
+      MYSQL_USER: netuser
+      MYSQL_PASSWORD: netpass123
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./sql:/docker-entrypoint-initdb.d
+      - mysql_data:/var/lib/mysql
+    networks:
+      - netmatrix_network
+
+  # PHP + Apache Web Server
+  php:
+    build: ./php
+    container_name: netmatrix_php
+    ports:
+      - "80:80"
+    volumes:
+      - ./php:/var/www/html
+      - ./html/templates:/var/www/html/templates
+    depends_on:
+      - mysql
+      - matlab
+      - java
+    networks:
+      - netmatrix_network
+    environment:
+      - MATLAB_HOST=matlab
+      - JAVA_HOST=java
+      - DB_HOST=mysql
+      - DB_NAME=netmatrix
+      - DB_USER=netuser
+      - DB_PASS=netpass123
+
+  # Java Service
+  java:
+    build: ./java
+    container_name: netmatrix_java
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./java:/app
+    networks:
+      - netmatrix_network
+    environment:
+      - DB_HOST=mysql
+      - DB_NAME=netmatrix
+      - DB_USER=netuser
+      - DB_PASS=netpass123
+
+  # MATLAB Service
+  matlab:
+    build: ./matlab
+    container_name: netmatrix_matlab
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./matlab:/matlab
+      - ./data:/data
+    networks:
+      - netmatrix_network
+    environment:
+      - MCR_CACHE_ROOT=/tmp/mcr_cache
+      - MLM_LICENSE_FILE=@license_server
+
+  # PHPMyAdmin (اختیاری)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: netmatrix_phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 100M
+    ports:
+      - "8081:80"
+    depends_on:
+      - mysql
+    networks:
+      - netmatrix_network
+
+networks:
+  netmatrix_network:
+    driver: bridge
+
+volumes:
+  mysql_data:
