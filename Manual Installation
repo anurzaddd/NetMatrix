@@ -1,0 +1,15 @@
+# 1. Setup MySQL
+mysql -u root -p < sql/init.sql
+
+# 2. Setup PHP
+cd php
+composer install
+php -S localhost:80
+
+# 3. Setup Java
+cd java
+mvn clean package
+java -jar target/netmatrix-java-1.0.jar
+
+# 4. Run MATLAB
+matlab -nodisplay -r "analyze_network"
